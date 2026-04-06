@@ -4,6 +4,8 @@ const md = window.markdownit({
     linkify: true,
     typographer: true,
     highlight: function (str, lang) {
+        // Skip mermaid blocks — let markdown-it preserve the language-mermaid class
+        if (lang === 'mermaid') return '';
         if (lang && hljs.getLanguage(lang)) {
             try {
                 return '<pre class="hljs"><code>' +
