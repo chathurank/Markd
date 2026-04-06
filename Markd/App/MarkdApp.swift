@@ -61,4 +61,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillFinishLaunching(_ notification: Notification) {
         UserDefaults.standard.register(defaults: ["AppleWindowTabbingMode": "always"])
     }
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // Enable window frame autosave so size/position persists
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            for window in NSApp.windows {
+                if window.frameAutosaveName.isEmpty {
+                    window.setFrameAutosaveName("MarkdMainWindow")
+                }
+            }
+        }
+    }
 }

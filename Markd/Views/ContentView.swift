@@ -21,6 +21,7 @@ struct ContentView: View {
     @State private var markdown: String = ""
     @State private var fileWatcher: FileWatcher? = nil
     @AppStorage("pageZoom") private var zoomLevel: Double = 1.0
+    @State private var sidebarVisibility: NavigationSplitViewVisibility = .automatic
 
     private var wordCount: Int {
         markdown.split { $0.isWhitespace || $0.isNewline }.count
@@ -33,7 +34,7 @@ struct ContentView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            NavigationSplitView {
+            NavigationSplitView(columnVisibility: $sidebarVisibility) {
                 TOCSidebar(
                     items: tocItems,
                     activeId: activeTOCId,

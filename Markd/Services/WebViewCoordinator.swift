@@ -21,9 +21,29 @@ final class WebViewCoordinator: NSObject, WKNavigationDelegate, WKScriptMessageH
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         pageLoaded = true
+        injectCustomCSS()
         if !currentMarkdown.isEmpty {
             injectMarkdown(currentMarkdown)
         }
+    }
+
+    /// Inject user's custom CSS from ~/Library/Application Support/Markd/custom.css
+    private func injectCustomCSS() {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+        guard let cssURL = appSupport?.appendingPathComponent("Markd/custom.css"),
+              let css = try? String(contentsOf: cssURL, encoding: .utf8) else { return }
+        let escaped = css
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "'", with: "\\'")
+            .replacingOccurrences(of: "\n", with: "\\n")
+        let js = """
+        (function(){
+            var s = document.getElementById('markd-custom-css');
+            if (!s) { s = document.createElement('style'); s.id = 'markd-custom-css'; document.head.appendChild(s); }
+            s.textContent = '\(escaped)';
+        })()
+        """
+        webView?.evaluateJavaScript(js, completionHandler: nil)
     }
 
     func renderMarkdown(_ markdown: String) {

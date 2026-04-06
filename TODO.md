@@ -9,9 +9,9 @@
 
 ## V1.2 — Polish ✅
 - [x] **Word count / reading time** — Status bar at bottom of window
-- [ ] **Remember window state** — Persist size, position, sidebar width
+- [x] **Remember window state** — Window frame autosave, sidebar visibility
 - [x] **Keyboard TOC navigation** — Arrow keys to navigate headings (native List selection)
-- [ ] **Custom CSS themes** — User-provided stylesheet override
+- [x] **Custom CSS themes** — Place `custom.css` in `~/Library/Application Support/Markd/`
 - [x] **App icon** — Design and add a proper app icon
 
 ## V2 — Platform Integration
