@@ -7,12 +7,12 @@
 - [x] **Relative image support** — Resolve image paths relative to the .md file
 - [x] **Print / Export to PDF** (Cmd+P) — Via WKWebView print APIs
 
-## V1.2 — Polish
-- [ ] **Word count / reading time** — Status bar at bottom of window
+## V1.2 — Polish ✅
+- [x] **Word count / reading time** — Status bar at bottom of window
 - [ ] **Remember window state** — Persist size, position, sidebar width
-- [ ] **Keyboard TOC navigation** — Arrow keys to navigate headings
+- [x] **Keyboard TOC navigation** — Arrow keys to navigate headings (native List selection)
 - [ ] **Custom CSS themes** — User-provided stylesheet override
-- [ ] **App icon** — Design and add a proper app icon
+- [x] **App icon** — Design and add a proper app icon
 
 ## V2 — Platform Integration
 - [ ] **Quick Look extension** — Preview .md in Finder with spacebar
