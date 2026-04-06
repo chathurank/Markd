@@ -8,6 +8,9 @@ struct MarkdApp: App {
         DocumentGroup(viewing: MarkdownDocument.self) { config in
             ContentView(document: config.document)
         }
+        .commands {
+            CommandGroup(replacing: .newItem) { }
+        }
     }
 }
 

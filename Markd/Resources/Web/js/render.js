@@ -99,10 +99,16 @@ async function renderMarkdown(markdownText) {
         }
     }
 
-    // 5. Extract TOC and send to Swift
+    // 5. Wrap mermaid diagrams in expandable containers with zoom/pan
+    wrapMermaidDiagrams();
+
+    // 6. Wrap tables in expandable containers
+    wrapTables();
+
+    // 7. Extract TOC and send to Swift
     extractAndSendTOC();
 
-    // 6. Set up scroll spy
+    // 8. Set up scroll spy
     setupScrollSpy();
 
     // Scroll to top for new document
@@ -169,5 +175,239 @@ function scrollToHeading(id) {
     var el = document.getElementById(id);
     if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+}
+
+// ---- Expandable containers ----
+
+function wrapMermaidDiagrams() {
+    var diagrams = document.querySelectorAll('#content .mermaid');
+    diagrams.forEach(function (diagram) {
+        if (diagram.closest('.expandable-container')) return;
+
+        var container = document.createElement('div');
+        container.className = 'expandable-container';
+
+        // Toolbar with zoom controls + fullview
+        var toolbar = document.createElement('div');
+        toolbar.className = 'expandable-toolbar';
+        toolbar.innerHTML =
+            '<button class="zoom-out-btn" title="Zoom out">−</button>' +
+            '<span class="zoom-label">100%</span>' +
+            '<button class="zoom-in-btn" title="Zoom in">+</button>' +
+            '<button class="zoom-reset-btn" title="Reset zoom">↺</button>' +
+            '<button class="fullview-btn" title="Full view">⛶</button>';
+
+        // Viewport for pan/zoom
+        var viewport = document.createElement('div');
+        viewport.className = 'mermaid-viewport';
+        var inner = document.createElement('div');
+        inner.className = 'mermaid-inner';
+
+        diagram.parentNode.insertBefore(container, diagram);
+        inner.appendChild(diagram);
+        viewport.appendChild(inner);
+        container.appendChild(toolbar);
+        container.appendChild(viewport);
+
+        setupDiagramZoomPan(container, viewport, inner);
+    });
+}
+
+function wrapTables() {
+    var tables = document.querySelectorAll('#content > table');
+    tables.forEach(function (table) {
+        if (table.parentElement.classList.contains('table-wrapper')) return;
+
+        var wrapper = document.createElement('div');
+        wrapper.className = 'table-wrapper';
+
+        var btn = document.createElement('button');
+        btn.className = 'table-expand-btn';
+        btn.title = 'Full view';
+        btn.textContent = '⛶';
+
+        table.parentNode.insertBefore(wrapper, table);
+        wrapper.appendChild(btn);
+        wrapper.appendChild(table);
+
+        btn.addEventListener('click', function () {
+            openFullView(table.cloneNode(true), false);
+        });
+    });
+}
+
+// ---- Diagram zoom/pan ----
+
+function setupDiagramZoomPan(container, viewport, inner) {
+    var scale = 1;
+    var panX = 0;
+    var panY = 0;
+    var isPanning = false;
+    var startX, startY, startPanX, startPanY;
+    var label = container.querySelector('.zoom-label');
+
+    function applyTransform(smooth) {
+        inner.style.transition = smooth ? 'transform 0.15s ease-out' : 'none';
+        inner.style.transform = 'translate(' + panX + 'px,' + panY + 'px) scale(' + scale + ')';
+        label.textContent = Math.round(scale * 100) + '%';
+    }
+
+    container.querySelector('.zoom-in-btn').addEventListener('click', function () {
+        scale = Math.min(scale * 1.25, 5);
+        applyTransform(true);
+    });
+
+    container.querySelector('.zoom-out-btn').addEventListener('click', function () {
+        scale = Math.max(scale / 1.25, 0.2);
+        applyTransform(true);
+    });
+
+    container.querySelector('.zoom-reset-btn').addEventListener('click', function () {
+        scale = 1; panX = 0; panY = 0;
+        applyTransform(true);
+    });
+
+    container.querySelector('.fullview-btn').addEventListener('click', function () {
+        openFullView(inner.cloneNode(true), true);
+    });
+
+    // Mouse wheel zoom
+    viewport.addEventListener('wheel', function (e) {
+        e.preventDefault();
+        var factor = e.deltaY < 0 ? 1.1 : 0.9;
+        scale = Math.max(0.2, Math.min(5, scale * factor));
+        applyTransform(false);
+    }, { passive: false });
+
+    // Pan with mouse drag
+    viewport.addEventListener('mousedown', function (e) {
+        isPanning = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        startPanX = panX;
+        startPanY = panY;
+        e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', function (e) {
+        if (!isPanning) return;
+        panX = startPanX + (e.clientX - startX);
+        panY = startPanY + (e.clientY - startY);
+        applyTransform(false);
+    });
+
+    document.addEventListener('mouseup', function () {
+        isPanning = false;
+    });
+
+    applyTransform(false);
+}
+
+// ---- Full-view overlay ----
+
+function openFullView(contentNode, isDiagram) {
+    // Remove any existing overlay
+    var existing = document.querySelector('.fullview-overlay');
+    if (existing) existing.remove();
+
+    var overlay = document.createElement('div');
+    overlay.className = 'fullview-overlay';
+
+    var toolbar = document.createElement('div');
+    toolbar.className = 'fullview-toolbar';
+
+    if (isDiagram) {
+        toolbar.innerHTML =
+            '<button class="zoom-out-btn" title="Zoom out">−</button>' +
+            '<span class="zoom-label" style="font-size:11px;color:var(--text-secondary);min-width:36px;text-align:center">100%</span>' +
+            '<button class="zoom-in-btn" title="Zoom in">+</button>' +
+            '<button class="zoom-reset-btn" title="Reset zoom">↺</button>' +
+            '<span style="flex:1"></span>' +
+            '<button class="close-btn">✕ Close</button>';
+    } else {
+        toolbar.innerHTML =
+            '<span style="flex:1"></span>' +
+            '<button class="close-btn">✕ Close</button>';
+    }
+
+    var body = document.createElement('div');
+    body.className = 'fullview-body' + (isDiagram ? ' is-diagram' : '');
+
+    var inner = document.createElement('div');
+    inner.className = 'fullview-inner';
+    inner.appendChild(contentNode);
+    body.appendChild(inner);
+
+    overlay.appendChild(toolbar);
+    overlay.appendChild(body);
+    document.body.appendChild(overlay);
+
+    // Animate in
+    requestAnimationFrame(function () {
+        overlay.classList.add('visible');
+    });
+
+    // Close handler
+    function closeOverlay() {
+        overlay.classList.remove('visible');
+        setTimeout(function () { overlay.remove(); }, 200);
+    }
+
+    toolbar.querySelector('.close-btn').addEventListener('click', closeOverlay);
+
+    // Escape key to close
+    function onKeyDown(e) {
+        if (e.key === 'Escape') {
+            closeOverlay();
+            document.removeEventListener('keydown', onKeyDown);
+        }
+    }
+    document.addEventListener('keydown', onKeyDown);
+
+    // Diagram zoom/pan in fullview
+    if (isDiagram) {
+        var fvScale = 1, fvPanX = 0, fvPanY = 0;
+        var fvIsPanning = false, fvStartX, fvStartY, fvStartPanX, fvStartPanY;
+        var fvLabel = toolbar.querySelector('.zoom-label');
+
+        function fvApply(smooth) {
+            inner.style.transition = smooth ? 'transform 0.15s ease-out' : 'none';
+            inner.style.transform = 'translate(' + fvPanX + 'px,' + fvPanY + 'px) scale(' + fvScale + ')';
+            fvLabel.textContent = Math.round(fvScale * 100) + '%';
+        }
+
+        toolbar.querySelector('.zoom-in-btn').addEventListener('click', function () {
+            fvScale = Math.min(fvScale * 1.25, 5); fvApply(true);
+        });
+        toolbar.querySelector('.zoom-out-btn').addEventListener('click', function () {
+            fvScale = Math.max(fvScale / 1.25, 0.2); fvApply(true);
+        });
+        toolbar.querySelector('.zoom-reset-btn').addEventListener('click', function () {
+            fvScale = 1; fvPanX = 0; fvPanY = 0; fvApply(true);
+        });
+
+        body.addEventListener('wheel', function (e) {
+            e.preventDefault();
+            var factor = e.deltaY < 0 ? 1.1 : 0.9;
+            fvScale = Math.max(0.2, Math.min(5, fvScale * factor));
+            fvApply(false);
+        }, { passive: false });
+
+        body.addEventListener('mousedown', function (e) {
+            fvIsPanning = true;
+            fvStartX = e.clientX; fvStartY = e.clientY;
+            fvStartPanX = fvPanX; fvStartPanY = fvPanY;
+            e.preventDefault();
+        });
+        document.addEventListener('mousemove', function handler(e) {
+            if (!fvIsPanning) return;
+            fvPanX = fvStartPanX + (e.clientX - fvStartX);
+            fvPanY = fvStartPanY + (e.clientY - fvStartY);
+            fvApply(false);
+        });
+        document.addEventListener('mouseup', function () {
+            fvIsPanning = false;
+        });
     }
 }

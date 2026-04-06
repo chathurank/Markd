@@ -172,10 +172,43 @@ li > p {
 }
 
 /* Tables */
+.table-wrapper {
+    position: relative;
+    margin: 1em 0;
+}
+
+.table-wrapper .table-expand-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 5px;
+    background: var(--table-header-bg);
+    color: var(--text-secondary);
+    font-size: 14px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+}
+
+.table-wrapper:hover .table-expand-btn {
+    opacity: 1;
+}
+
+.table-wrapper .table-expand-btn:hover {
+    background: var(--border);
+    color: var(--text);
+}
+
 table {
     border-collapse: collapse;
     width: 100%;
-    margin: 1em 0;
     font-size: 0.95em;
 }
 
@@ -202,11 +235,155 @@ img {
     margin: 0.5em 0;
 }
 
+/* ---- Expandable containers (diagrams + tables) ---- */
+.expandable-container {
+    position: relative;
+    margin: 1.5em 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.expandable-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    padding: 4px 8px;
+    background: var(--code-bg);
+    border-bottom: 1px solid var(--border);
+    user-select: none;
+}
+
+.expandable-toolbar button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.expandable-toolbar button:hover {
+    background: var(--border);
+    color: var(--text);
+}
+
+.expandable-toolbar .zoom-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    min-width: 36px;
+    text-align: center;
+}
+
+.expandable-content {
+    overflow: auto;
+    padding: 16px;
+}
+
+/* Mermaid zoom/pan viewport */
+.mermaid-viewport {
+    overflow: hidden;
+    cursor: grab;
+    min-height: 100px;
+}
+
+.mermaid-viewport:active {
+    cursor: grabbing;
+}
+
+.mermaid-viewport .mermaid-inner {
+    transform-origin: 0 0;
+    transition: transform 0.1s ease-out;
+    display: inline-block;
+}
+
 /* Mermaid diagrams */
 .mermaid {
     text-align: center;
-    margin: 1.5em 0;
     background: transparent;
+}
+
+/* ---- Full-view overlay ---- */
+.fullview-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.fullview-overlay.visible {
+    opacity: 1;
+}
+
+.fullview-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    padding: 8px 12px;
+    background: var(--code-bg);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.fullview-toolbar button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+    padding: 0 10px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.fullview-toolbar button:hover {
+    background: var(--border);
+    color: var(--text);
+}
+
+.fullview-body {
+    flex: 1;
+    overflow: auto;
+    padding: 24px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+.fullview-body.is-diagram {
+    cursor: grab;
+    overflow: hidden;
+}
+
+.fullview-body.is-diagram:active {
+    cursor: grabbing;
+}
+
+.fullview-inner {
+    transform-origin: 0 0;
+    transition: transform 0.1s ease-out;
+}
+
+/* Tables inside fullview should not be constrained */
+.fullview-body table {
+    width: auto;
+    min-width: 100%;
 }
 
 /* KaTeX math */
