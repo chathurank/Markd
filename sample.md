@@ -4,7 +4,7 @@ This is a sample markdown document to test **Markd**, a macOS markdown viewer.
 
 ## Text Formatting
 
-You can use **bold**, *italic*, ~~strikethrough~~, and `inline code`.
+You can use **bold**, _italic_, ~~strikethrough~~, and `inline code`.
 
 Here's a [link to GitHub](https://github.com) and an auto-linked URL: https://example.com
 
@@ -33,13 +33,13 @@ print([fibonacci(i) for i in range(10)])
 
 ## Tables
 
-| Feature | Status | Notes |
-|---------|--------|-------|
-| GFM Tables | ✅ | Full support |
-| Task Lists | ✅ | Interactive checkboxes |
-| Mermaid | ✅ | Diagrams render inline |
-| LaTeX | ✅ | KaTeX engine |
-| Dark Mode | ✅ | Follows system |
+| Feature    | Status | Notes                  |
+| ---------- | ------ | ---------------------- |
+| GFM Tables | ✅     | Full support           |
+| Task Lists | ✅     | Interactive checkboxes |
+| Mermaid    | ✅     | Diagrams render inline |
+| LaTeX      | ✅     | KaTeX engine           |
+| Dark Mode  | ✅     | Follows system         |
 
 ## Task Lists
 
@@ -99,6 +99,7 @@ $$
 Images with URLs will render if accessible:
 
 ![Markdown Logo](https://upload.wikimedia.org/wikipedia/commons/4/48/Markdown-mark.svg)
+![Logo](./logo.png)
 
 ## Nested Lists
 

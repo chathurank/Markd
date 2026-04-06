@@ -411,3 +411,128 @@ function openFullView(contentNode, isDiagram) {
         });
     }
 }
+
+// ---- Find bar ----
+
+var findBarVisible = false;
+var findHighlights = [];
+var findCurrentIndex = -1;
+
+function showFindBar() {
+    if (findBarVisible) {
+        // Focus the input if already visible
+        var input = document.getElementById('markd-find-input');
+        if (input) { input.focus(); input.select(); }
+        return;
+    }
+    findBarVisible = true;
+
+    var bar = document.createElement('div');
+    bar.id = 'markd-find-bar';
+    bar.innerHTML =
+        '<input id="markd-find-input" type="text" placeholder="Find…" autocomplete="off" spellcheck="false">' +
+        '<span id="markd-find-count"></span>' +
+        '<button id="markd-find-prev" title="Previous">▲</button>' +
+        '<button id="markd-find-next" title="Next">▼</button>' +
+        '<button id="markd-find-close" title="Close">✕</button>';
+    document.body.appendChild(bar);
+
+    var input = document.getElementById('markd-find-input');
+    var countEl = document.getElementById('markd-find-count');
+
+    input.addEventListener('input', function () {
+        performFind(input.value, countEl);
+    });
+
+    input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+            if (e.shiftKey) findPrev(countEl);
+            else findNext(countEl);
+        }
+        if (e.key === 'Escape') closeFindBar();
+    });
+
+    document.getElementById('markd-find-next').addEventListener('click', function () { findNext(countEl); });
+    document.getElementById('markd-find-prev').addEventListener('click', function () { findPrev(countEl); });
+    document.getElementById('markd-find-close').addEventListener('click', closeFindBar);
+
+    input.focus();
+}
+
+function closeFindBar() {
+    findBarVisible = false;
+    var bar = document.getElementById('markd-find-bar');
+    if (bar) bar.remove();
+    clearHighlights();
+}
+
+function clearHighlights() {
+    findHighlights.forEach(function (el) {
+        var parent = el.parentNode;
+        parent.replaceChild(document.createTextNode(el.textContent), el);
+        parent.normalize();
+    });
+    findHighlights = [];
+    findCurrentIndex = -1;
+}
+
+function performFind(query, countEl) {
+    clearHighlights();
+    if (!query) { countEl.textContent = ''; return; }
+
+    var content = document.getElementById('content');
+    var walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT, null);
+    var textNodes = [];
+    while (walker.nextNode()) textNodes.push(walker.currentNode);
+
+    var lowerQuery = query.toLowerCase();
+    textNodes.forEach(function (node) {
+        var text = node.textContent;
+        var lowerText = text.toLowerCase();
+        var idx = lowerText.indexOf(lowerQuery);
+        if (idx === -1) return;
+
+        var frag = document.createDocumentFragment();
+        var lastIdx = 0;
+        while (idx !== -1) {
+            frag.appendChild(document.createTextNode(text.substring(lastIdx, idx)));
+            var mark = document.createElement('mark');
+            mark.className = 'markd-find-highlight';
+            mark.textContent = text.substring(idx, idx + query.length);
+            frag.appendChild(mark);
+            findHighlights.push(mark);
+            lastIdx = idx + query.length;
+            idx = lowerText.indexOf(lowerQuery, lastIdx);
+        }
+        frag.appendChild(document.createTextNode(text.substring(lastIdx)));
+        node.parentNode.replaceChild(frag, node);
+    });
+
+    countEl.textContent = findHighlights.length + ' found';
+    if (findHighlights.length > 0) {
+        findCurrentIndex = 0;
+        highlightCurrent(countEl);
+    }
+}
+
+function findNext(countEl) {
+    if (findHighlights.length === 0) return;
+    findCurrentIndex = (findCurrentIndex + 1) % findHighlights.length;
+    highlightCurrent(countEl);
+}
+
+function findPrev(countEl) {
+    if (findHighlights.length === 0) return;
+    findCurrentIndex = (findCurrentIndex - 1 + findHighlights.length) % findHighlights.length;
+    highlightCurrent(countEl);
+}
+
+function highlightCurrent(countEl) {
+    findHighlights.forEach(function (el, i) {
+        el.classList.toggle('markd-find-active', i === findCurrentIndex);
+    });
+    if (findHighlights[findCurrentIndex]) {
+        findHighlights[findCurrentIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    countEl.textContent = (findCurrentIndex + 1) + ' of ' + findHighlights.length;
+}

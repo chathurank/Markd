@@ -413,3 +413,95 @@ del {
 ::selection {
     background: rgba(41, 151, 255, 0.3);
 }
+
+/* ---- Find bar ---- */
+#markd-find-bar {
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--code-bg);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+#markd-find-input {
+    flex: 1;
+    max-width: 300px;
+    padding: 5px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    outline: none;
+}
+
+#markd-find-input:focus {
+    border-color: var(--link);
+}
+
+#markd-find-count {
+    font-size: 11px;
+    color: var(--text-secondary);
+    min-width: 60px;
+}
+
+#markd-find-bar button {
+    width: 26px;
+    height: 26px;
+    border: none;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#markd-find-bar button:hover {
+    background: var(--border);
+    color: var(--text);
+}
+
+.markd-find-highlight {
+    background: rgba(255, 210, 0, 0.4);
+    border-radius: 2px;
+}
+
+.markd-find-highlight.markd-find-active {
+    background: rgba(255, 150, 0, 0.6);
+    outline: 2px solid rgba(255, 150, 0, 0.8);
+}
+
+/* ---- Print styles ---- */
+@media print {
+    body {
+        background: white;
+        color: black;
+        padding: 0;
+        max-width: none;
+    }
+
+    .expandable-toolbar,
+    .table-expand-btn,
+    .fullview-overlay {
+        display: none !important;
+    }
+
+    pre {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+
+    a { color: black; text-decoration: underline; }
+    a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.85em; color: #666; }
+}

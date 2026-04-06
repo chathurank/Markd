@@ -4,6 +4,8 @@ import WebKit
 struct MarkdownWebView: NSViewRepresentable {
     let markdown: String
     @Binding var scrollToId: String?
+    var zoomLevel: Double = 1.0
+    var documentDirectory: URL? = nil
     let onTOCUpdate: ([TOCItem]) -> Void
     let onActiveHeadingChange: (String?) -> Void
 
@@ -19,6 +21,8 @@ struct MarkdownWebView: NSViewRepresentable {
         webView.setValue(false, forKey: "drawsBackground")
 
         context.coordinator.webView = webView
+        context.coordinator.documentDirectory = documentDirectory
+        WebViewCoordinator.active = context.coordinator
 
         if let webFolder = Bundle.main.resourceURL?.appendingPathComponent("Web") {
             let templateURL = webFolder.appendingPathComponent("template.html")
@@ -29,8 +33,14 @@ struct MarkdownWebView: NSViewRepresentable {
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
+        WebViewCoordinator.active = context.coordinator
+
         if context.coordinator.currentMarkdown != markdown {
             context.coordinator.renderMarkdown(markdown)
+        }
+
+        if webView.pageZoom != CGFloat(zoomLevel) {
+            webView.pageZoom = CGFloat(zoomLevel)
         }
 
         if let id = scrollToId {
