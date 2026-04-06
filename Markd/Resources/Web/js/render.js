@@ -33,8 +33,8 @@ if (window.markdownItAnchor) {
 }
 
 // Add task list plugin
-if (window.markdownItTaskLists) {
-    md.use(window.markdownItTaskLists, { enabled: true, label: true });
+if (window.markdownitTaskLists) {
+    md.use(window.markdownitTaskLists, { enabled: true, label: true });
 }
 
 // Add KaTeX math plugin
