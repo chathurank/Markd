@@ -1,8 +1,7 @@
 import WebKit
 
 final class WebViewCoordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
-    /// The most recently active coordinator (set when webView is created/updated)
-    static var active: WebViewCoordinator?
+    @MainActor static var active: WebViewCoordinator?
 
     weak var webView: WKWebView?
     var currentMarkdown: String = ""
@@ -27,20 +26,17 @@ final class WebViewCoordinator: NSObject, WKNavigationDelegate, WKScriptMessageH
         }
     }
 
-    /// Inject user's custom CSS from ~/Library/Application Support/Markd/custom.css
     private func injectCustomCSS() {
         let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
         guard let cssURL = appSupport?.appendingPathComponent("Markd/custom.css"),
-              let css = try? String(contentsOf: cssURL, encoding: .utf8) else { return }
-        let escaped = css
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "'", with: "\\'")
-            .replacingOccurrences(of: "\n", with: "\\n")
+              let css = try? String(contentsOf: cssURL, encoding: .utf8),
+              let cssData = try? JSONEncoder().encode(css),
+              let cssJSON = String(data: cssData, encoding: .utf8) else { return }
         let js = """
         (function(){
             var s = document.getElementById('markd-custom-css');
             if (!s) { s = document.createElement('style'); s.id = 'markd-custom-css'; document.head.appendChild(s); }
-            s.textContent = '\(escaped)';
+            s.textContent = \(cssJSON);
         })()
         """
         webView?.evaluateJavaScript(js, completionHandler: nil)
@@ -54,10 +50,9 @@ final class WebViewCoordinator: NSObject, WKNavigationDelegate, WKScriptMessageH
     }
 
     private func injectMarkdown(_ markdown: String) {
-        // Resolve relative image paths to data: URLs before sending to JS
         var processedMarkdown = markdown
         if let dir = documentDirectory {
-            processedMarkdown = resolveImagePaths(in: markdown, relativeTo: dir)
+            processedMarkdown = ImageResolver.resolveImagePaths(in: markdown, relativeTo: dir)
         }
 
         guard let data = processedMarkdown.data(using: .utf8) else { return }
@@ -66,65 +61,10 @@ final class WebViewCoordinator: NSObject, WKNavigationDelegate, WKScriptMessageH
         webView?.evaluateJavaScript(js, completionHandler: nil)
     }
 
-    /// Replace relative image paths with data: URLs by reading files from disk
-    private func resolveImagePaths(in markdown: String, relativeTo directory: URL) -> String {
-        var result = markdown
-        // Match markdown image syntax: ![alt](path)
-        let pattern = #"!\[([^\]]*)\]\(([^)]+)\)"#
-        guard let regex = try? NSRegularExpression(pattern: pattern) else { return result }
-
-        let nsString = result as NSString
-        let matches = regex.matches(in: result, range: NSRange(location: 0, length: nsString.length))
-
-        // Process in reverse order to preserve string indices
-        for match in matches.reversed() {
-            guard match.numberOfRanges >= 3 else { continue }
-            let pathRange = match.range(at: 2)
-            let path = nsString.substring(with: pathRange)
-
-            // Skip URLs and absolute paths
-            if path.hasPrefix("http://") || path.hasPrefix("https://") || path.hasPrefix("data:") {
-                continue
-            }
-
-            // Resolve the path relative to the document directory
-            let imageURL: URL
-            if path.hasPrefix("/") {
-                imageURL = URL(fileURLWithPath: path).standardized
-            } else {
-                imageURL = directory.appendingPathComponent(path).standardized
-            }
-
-            // Read the file and convert to data URL
-            guard let imageData = try? Data(contentsOf: imageURL) else {
-                continue
-            }
-            let mimeType = mimeTypeForPath(path)
-            let dataURL = "data:\(mimeType);base64,\(imageData.base64EncodedString())"
-
-            result = (result as NSString).replacingCharacters(in: pathRange, with: dataURL)
-        }
-
-        return result
-    }
-
-    private func mimeTypeForPath(_ path: String) -> String {
-        let ext = (path as NSString).pathExtension.lowercased()
-        switch ext {
-        case "png": return "image/png"
-        case "jpg", "jpeg": return "image/jpeg"
-        case "gif": return "image/gif"
-        case "svg": return "image/svg+xml"
-        case "webp": return "image/webp"
-        case "bmp": return "image/bmp"
-        case "ico": return "image/x-icon"
-        default: return "image/png"
-        }
-    }
-
     func scrollToHeading(_ id: String) {
-        let safeId = id.replacingOccurrences(of: "'", with: "\\'")
-        webView?.evaluateJavaScript("scrollToHeading('\(safeId)')")
+        guard let data = try? JSONEncoder().encode(id),
+              let json = String(data: data, encoding: .utf8) else { return }
+        webView?.evaluateJavaScript("scrollToHeading(\(json))")
     }
 
     func printDocument() {
@@ -156,7 +96,6 @@ final class WebViewCoordinator: NSObject, WKNavigationDelegate, WKScriptMessageH
         webView?.evaluateJavaScript("document.getElementById('content').innerHTML") { result, _ in
             guard let bodyHTML = result as? String else { return }
 
-            // Read the CSS from the bundle
             let cssString: String
             if let cssURL = Bundle.main.resourceURL?
                 .appendingPathComponent("Web/css/style.css"),
@@ -183,7 +122,12 @@ final class WebViewCoordinator: NSObject, WKNavigationDelegate, WKScriptMessageH
                 panel.allowedContentTypes = [.html]
                 panel.nameFieldStringValue = "document.html"
                 if panel.runModal() == .OK, let url = panel.url {
-                    try? fullHTML.write(to: url, atomically: true, encoding: .utf8)
+                    do {
+                        try fullHTML.write(to: url, atomically: true, encoding: .utf8)
+                    } catch {
+                        let alert = NSAlert(error: error)
+                        alert.runModal()
+                    }
                 }
             }
         }

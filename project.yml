@@ -71,6 +71,7 @@ targets:
     platform: macOS
     sources:
       - path: MarkdQuickLook
+      - path: Markd/Utilities/ImageResolver.swift
       - path: Markd/Resources/Web
         type: folder
         buildPhase: resources

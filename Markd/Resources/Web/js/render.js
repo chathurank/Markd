@@ -440,8 +440,12 @@ function showFindBar() {
     var input = document.getElementById('markd-find-input');
     var countEl = document.getElementById('markd-find-count');
 
+    var findDebounceTimer = null;
     input.addEventListener('input', function () {
-        performFind(input.value, countEl);
+        clearTimeout(findDebounceTimer);
+        findDebounceTimer = setTimeout(function () {
+            performFind(input.value, countEl);
+        }, 150);
     });
 
     input.addEventListener('keydown', function (e) {

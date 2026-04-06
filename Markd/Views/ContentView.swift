@@ -30,6 +30,7 @@ struct ContentView: View {
     }
 
     private var readingTime: String {
+        if wordCount == 0 { return "" }
         let minutes = max(1, wordCount / 200)
         return "\(minutes) min read"
     }

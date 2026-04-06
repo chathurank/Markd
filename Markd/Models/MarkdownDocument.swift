@@ -11,12 +11,18 @@ struct MarkdownDocument: FileDocument {
     }
 
     init(configuration: ReadConfiguration) throws {
-        guard let data = configuration.file.regularFileContents,
-              let text = String(data: data, encoding: .utf8)
-        else {
+        guard let data = configuration.file.regularFileContents else {
             throw CocoaError(.fileReadCorruptFile)
         }
-        self.text = text
+        // Try common encodings in order of likelihood
+        let encodings: [String.Encoding] = [.utf8, .isoLatin1, .macOSRoman, .ascii]
+        for encoding in encodings {
+            if let text = String(data: data, encoding: encoding) {
+                self.text = text
+                return
+            }
+        }
+        throw CocoaError(.fileReadCorruptFile)
     }
 
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {

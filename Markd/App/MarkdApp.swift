@@ -112,7 +112,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             else { continue }
 
             let fileURL = URL(fileURLWithPath: path)
-            guard FileManager.default.fileExists(atPath: fileURL.path) else { continue }
+            let validExts = ["md", "markdown", "mdown", "mkd", "mdx"]
+            guard validExts.contains(fileURL.pathExtension.lowercased()),
+                  FileManager.default.fileExists(atPath: fileURL.path) else { continue }
             NSDocumentController.shared.openDocument(
                 withContentsOf: fileURL, display: true
             ) { _, _, _ in }
