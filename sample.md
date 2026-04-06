@@ -99,7 +99,6 @@ $$
 Images with URLs will render if accessible:
 
 ![Markdown Logo](https://upload.wikimedia.org/wikipedia/commons/4/48/Markdown-mark.svg)
-![Logo](./logo.png)
 
 ## Nested Lists
 
