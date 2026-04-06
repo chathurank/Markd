@@ -139,9 +139,54 @@ final class WebViewCoordinator: NSObject, WKNavigationDelegate, WKScriptMessageH
     }
 
     func showFind() {
-        // Inject a find overlay into the web page
-        let js = "showFindBar()"
-        webView?.evaluateJavaScript(js, completionHandler: nil)
+        webView?.evaluateJavaScript("showFindBar()", completionHandler: nil)
+    }
+
+    func copyHTML() {
+        webView?.evaluateJavaScript("document.getElementById('content').innerHTML") { result, _ in
+            guard let html = result as? String else { return }
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            pasteboard.setString(html, forType: .html)
+            pasteboard.setString(html, forType: .string)
+        }
+    }
+
+    func exportHTML() {
+        webView?.evaluateJavaScript("document.getElementById('content').innerHTML") { result, _ in
+            guard let bodyHTML = result as? String else { return }
+
+            // Read the CSS from the bundle
+            let cssString: String
+            if let cssURL = Bundle.main.resourceURL?
+                .appendingPathComponent("Web/css/style.css"),
+               let css = try? String(contentsOf: cssURL, encoding: .utf8) {
+                cssString = css
+            } else {
+                cssString = ""
+            }
+
+            let fullHTML = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>\(cssString)</style>
+            </head>
+            <body><article>\(bodyHTML)</article></body>
+            </html>
+            """
+
+            DispatchQueue.main.async {
+                let panel = NSSavePanel()
+                panel.allowedContentTypes = [.html]
+                panel.nameFieldStringValue = "document.html"
+                if panel.runModal() == .OK, let url = panel.url {
+                    try? fullHTML.write(to: url, atomically: true, encoding: .utf8)
+                }
+            }
+        }
     }
 
     func userContentController(

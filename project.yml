@@ -30,6 +30,10 @@ targets:
         PRODUCT_NAME: Markd
         INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.developer-tools"
         SWIFT_STRICT_CONCURRENCY: complete
+    dependencies:
+      - target: MarkdQuickLook
+        embed: true
+        codeSign: true
     entitlements:
       path: Markd/Markd.entitlements
       properties:
@@ -43,6 +47,10 @@ targets:
             LSHandlerRank: "Default"
             LSItemContentTypes:
               - "net.daringfireball.markdown"
+        CFBundleURLTypes:
+          - CFBundleURLName: "com.chathura.Markd"
+            CFBundleURLSchemes:
+              - "markd"
         UTImportedTypeDeclarations:
           - UTTypeIdentifier: "net.daringfireball.markdown"
             UTTypeDescription: "Markdown Document"
@@ -57,3 +65,29 @@ targets:
                 - "mdx"
               public.mime-type:
                 - "text/markdown"
+
+  MarkdQuickLook:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: MarkdQuickLook
+      - path: Markd/Resources/Web
+        type: folder
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.chathura.Markd.QuickLookExtension
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: 1
+        SWIFT_STRICT_CONCURRENCY: complete
+        GENERATE_INFOPLIST_FILE: false
+    info:
+      path: MarkdQuickLook/Info.plist
+      properties:
+        CFBundleDisplayName: "Markd Quick Look"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.quicklook.preview
+          NSExtensionPrincipalClass: "$(PRODUCT_MODULE_NAME).PreviewViewController"
+        QLSupportedContentTypes:
+          - "net.daringfireball.markdown"
+          - "public.plain-text"

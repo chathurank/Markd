@@ -15,8 +15,9 @@
 - [x] **App icon** — Design and add a proper app icon
 
 ## V2 — Platform Integration
-- [ ] **Quick Look extension** — Preview .md in Finder with spacebar
-- [ ] **Spotlight importer** — Index .md content for Spotlight search
-- [ ] **Share extension** — Share rendered content
-- [ ] **URL scheme** — `markd://open?path=...`
-- [ ] **Drag & drop onto window** — Drop .md file onto content area to open
+- [x] **URL scheme** — `markd://open?path=...`
+- [x] **Drag & drop onto window** — Drop .md file onto content area to open
+- [x] **Spotlight indexing** — Files indexed via CoreSpotlight when opened
+- [x] **Copy as HTML** — Edit > Copy as HTML (Cmd+Shift+C)
+- [x] **Export to HTML** — File > Export to HTML… (Cmd+Shift+E)
+- [ ] **Quick Look extension** — Code complete, requires Apple Developer certificate to register
