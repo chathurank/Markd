@@ -31,17 +31,6 @@ struct ContentView: View {
     @AppStorage("pageZoom") private var zoomLevel: Double = 1.0
     @State private var sidebarVisibility: NavigationSplitViewVisibility = .automatic
 
-    private var wordCount: Int {
-        let text = viewMode == .code ? document.text : markdown
-        return text.split { $0.isWhitespace || $0.isNewline }.count
-    }
-
-    private var readingTime: String {
-        if wordCount == 0 { return "" }
-        let minutes = max(1, wordCount / 200)
-        return "\(minutes) min read"
-    }
-
     private var documentTitle: String {
         fileURL?.deletingPathExtension().lastPathComponent ?? "Untitled"
     }
@@ -74,11 +63,7 @@ struct ContentView: View {
                         onActiveHeadingChange: { id in activeTOCId = id }
                     )
                 } else {
-                    TextEditor(text: $document.text)
-                        .font(.system(.body, design: .monospaced))
-                        .scrollContentBackground(.hidden)
-                        .padding(.horizontal, 36)
-                        .padding(.vertical, 20)
+                    CodeEditorView(text: $document.text)
                 }
             }
             .navigationTitle(documentTitle)
@@ -96,17 +81,6 @@ struct ContentView: View {
                     .help(viewMode == .rendered ? "Rendered view" : "Code view")
                 }
 
-                ToolbarItemGroup(placement: .automatic) {
-                    HStack(spacing: 12) {
-                        Text("\(wordCount) words")
-                        Text(readingTime)
-                        if zoomLevel != 1.0 {
-                            Text("\(Int(zoomLevel * 100))%")
-                        }
-                    }
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-                }
             }
         }
         .frame(minWidth: 600, minHeight: 400)
