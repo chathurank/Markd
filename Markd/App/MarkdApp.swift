@@ -7,9 +7,10 @@ struct MarkdApp: App {
     @FocusedBinding(\.zoom) private var zoomLevel
 
     var body: some Scene {
-        DocumentGroup(viewing: MarkdownDocument.self) { config in
-            ContentView(document: config.document, fileURL: config.fileURL)
+        DocumentGroup(newDocument: MarkdownDocument()) { config in
+            ContentView(document: config.$document, fileURL: config.fileURL)
         }
+        .windowToolbarStyle(.unified)
         .commands {
             CommandGroup(replacing: .newItem) { }
 

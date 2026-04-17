@@ -76,8 +76,14 @@ async function renderMarkdown(markdownText) {
     // 1. Parse markdown to HTML
     var html = md.render(markdownText);
 
-    // 2. Insert into DOM
-    contentEl.innerHTML = html;
+    // 2. Sanitize and insert into DOM (DOMPurify strips dangerous tags/attributes)
+    var clean = DOMPurify.sanitize(html, {
+        ADD_TAGS: ['semantics', 'annotation'],
+        ADD_ATTR: ['target', 'encoding'],
+        FORBID_TAGS: ['style'],
+        ALLOW_DATA_ATTR: true
+    });
+    contentEl.innerHTML = clean;
 
     // 3. Transform mermaid code blocks into renderable divs
     var mermaidBlocks = contentEl.querySelectorAll('pre > code.language-mermaid');

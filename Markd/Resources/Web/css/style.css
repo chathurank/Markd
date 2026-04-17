@@ -45,7 +45,7 @@ body {
     font-size: 15px;
     line-height: 1.7;
     color: var(--text);
-    background: var(--bg);
+    background: transparent;
     padding: 28px 36px;
     max-width: 880px;
     margin: 0 auto;

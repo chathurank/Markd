@@ -1,6 +1,11 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+enum ViewMode: String, CaseIterable {
+    case rendered
+    case code
+}
+
 struct ZoomKey: FocusedValueKey {
     typealias Value = Binding<Double>
 }
@@ -13,7 +18,7 @@ extension FocusedValues {
 }
 
 struct ContentView: View {
-    let document: MarkdownDocument
+    @Binding var document: MarkdownDocument
     let fileURL: URL?
 
     @State private var tocItems: [TOCItem] = []
@@ -22,11 +27,13 @@ struct ContentView: View {
     @State private var markdown: String = ""
     @State private var fileWatcher: FileWatcher? = nil
     @State private var isDropTargeted = false
+    @State private var viewMode: ViewMode = .rendered
     @AppStorage("pageZoom") private var zoomLevel: Double = 1.0
     @State private var sidebarVisibility: NavigationSplitViewVisibility = .automatic
 
     private var wordCount: Int {
-        markdown.split { $0.isWhitespace || $0.isNewline }.count
+        let text = viewMode == .code ? document.text : markdown
+        return text.split { $0.isWhitespace || $0.isNewline }.count
     }
 
     private var readingTime: String {
@@ -35,41 +42,72 @@ struct ContentView: View {
         return "\(minutes) min read"
     }
 
-    var body: some View {
-        VStack(spacing: 0) {
-            NavigationSplitView(columnVisibility: $sidebarVisibility) {
-                TOCSidebar(
-                    items: tocItems,
-                    activeId: activeTOCId,
-                    onSelect: { id in scrollToId = id }
-                )
-                .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 320)
-                .navigationTitle("Contents")
-            } detail: {
-                MarkdownWebView(
-                    markdown: markdown,
-                    scrollToId: $scrollToId,
-                    zoomLevel: zoomLevel,
-                    documentDirectory: fileURL?.deletingLastPathComponent(),
-                    onTOCUpdate: { items in tocItems = items },
-                    onActiveHeadingChange: { id in activeTOCId = id }
-                )
-            }
+    private var documentTitle: String {
+        fileURL?.deletingPathExtension().lastPathComponent ?? "Untitled"
+    }
 
-            // Status bar
-            HStack(spacing: 16) {
-                Text("\(wordCount) words")
-                Text(readingTime)
-                Spacer()
-                if zoomLevel != 1.0 {
-                    Text("\(Int(zoomLevel * 100))%")
+    private var documentSubtitle: String {
+        fileURL?.deletingLastPathComponent().lastPathComponent ?? ""
+    }
+
+    var body: some View {
+        NavigationSplitView(columnVisibility: $sidebarVisibility) {
+            TOCSidebar(
+                items: tocItems,
+                activeId: activeTOCId,
+                onSelect: { id in
+                    if viewMode == .code { viewMode = .rendered }
+                    scrollToId = id
+                }
+            )
+            .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 320)
+            .navigationTitle("Contents")
+        } detail: {
+            Group {
+                if viewMode == .rendered {
+                    MarkdownWebView(
+                        markdown: markdown,
+                        scrollToId: $scrollToId,
+                        zoomLevel: zoomLevel,
+                        documentDirectory: fileURL?.deletingLastPathComponent(),
+                        onTOCUpdate: { items in tocItems = items },
+                        onActiveHeadingChange: { id in activeTOCId = id }
+                    )
+                } else {
+                    TextEditor(text: $document.text)
+                        .font(.system(.body, design: .monospaced))
+                        .scrollContentBackground(.hidden)
+                        .padding(.horizontal, 36)
+                        .padding(.vertical, 20)
                 }
             }
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 4)
-            .background(.bar)
+            .navigationTitle(documentTitle)
+            .navigationSubtitle(documentSubtitle)
+            .toolbar {
+                ToolbarItem(placement: .navigation) {
+                    Picker("", selection: $viewMode) {
+                        Image(systemName: "eye")
+                            .tag(ViewMode.rendered)
+                        Image(systemName: "chevron.left.forwardslash.chevron.right")
+                            .tag(ViewMode.code)
+                    }
+                    .pickerStyle(.segmented)
+                    .fixedSize()
+                    .help(viewMode == .rendered ? "Rendered view" : "Code view")
+                }
+
+                ToolbarItemGroup(placement: .automatic) {
+                    HStack(spacing: 12) {
+                        Text("\(wordCount) words")
+                        Text(readingTime)
+                        if zoomLevel != 1.0 {
+                            Text("\(Int(zoomLevel * 100))%")
+                        }
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                }
+            }
         }
         .frame(minWidth: 600, minHeight: 400)
         .focusedSceneValue(\.zoom, $zoomLevel)
@@ -88,7 +126,6 @@ struct ContentView: View {
         .onAppear {
             markdown = document.text
             startFileWatcher()
-            // Index in Spotlight
             if let url = fileURL {
                 SpotlightIndexer.index(fileURL: url, content: document.text)
             }
@@ -97,10 +134,22 @@ struct ContentView: View {
             fileWatcher?.stop()
             fileWatcher = nil
         }
+        .onChange(of: viewMode) { _, newMode in
+            if newMode == .rendered {
+                // Sync edited text to rendered view
+                markdown = document.text
+                startFileWatcher()
+            } else {
+                // Pause file watcher during editing
+                fileWatcher?.stop()
+                fileWatcher = nil
+            }
+        }
     }
 
     private func startFileWatcher() {
         guard let url = fileURL else { return }
+        fileWatcher?.stop()
         fileWatcher = FileWatcher(url: url) {
             if let data = try? Data(contentsOf: url),
                let text = String(data: data, encoding: .utf8) {

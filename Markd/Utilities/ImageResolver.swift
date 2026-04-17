@@ -27,7 +27,8 @@ enum ImageResolver {
             }
 
             // Prevent path traversal — only allow files within the document directory
-            guard imageURL.path.hasPrefix(directory.path) else { continue }
+            let directoryPrefix = directory.path.hasSuffix("/") ? directory.path : directory.path + "/"
+            guard imageURL.path.hasPrefix(directoryPrefix) else { continue }
 
             guard let imageData = try? Data(contentsOf: imageURL) else { continue }
             let mimeType = mimeTypeForExtension((path as NSString).pathExtension.lowercased())
