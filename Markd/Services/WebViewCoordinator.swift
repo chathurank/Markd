@@ -192,12 +192,32 @@ final class WebViewCoordinator: NSObject, WKNavigationDelegate, WKScriptMessageH
         case "file":
             // Relative links to other Markdown files open as a new document; never hand
             // other local files to NSWorkspace, which would launch apps and scripts.
-            let resolved = url.resolvingSymlinksInPath()
+            guard let templateURL, let documentDirectory,
+                  let target = Self.documentURL(forLink: url,
+                                                webFolder: templateURL.deletingLastPathComponent(),
+                                                documentDirectory: documentDirectory) else { return }
+            let resolved = target.resolvingSymlinksInPath()
             let isRegularFile = (try? resolved.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true
             guard isRegularFile, Self.markdownExtensions.contains(resolved.pathExtension.lowercased()) else { return }
             NSDocumentController.shared.openDocument(withContentsOf: resolved, display: true) { _, _, _ in }
         default:
             break
         }
+    }
+
+    /// The page is the bundled template, so WebKit resolves a relative link like
+    /// `docs/setup.md` against the app's Web folder. Re-anchor it on the document's folder.
+    static func documentURL(forLink url: URL, webFolder: URL, documentDirectory: URL) -> URL? {
+        let base = webFolder.resolvingSymlinksInPath().standardizedFileURL.pathComponents
+        let target = url.resolvingSymlinksInPath().standardizedFileURL.pathComponents
+        var common = 0
+        while common < base.count, common < target.count, base[common] == target[common] {
+            common += 1
+        }
+        let relative = Array(repeating: "..", count: base.count - common) + target[common...]
+        guard !relative.isEmpty else { return nil }
+        return documentDirectory
+            .appendingPathComponent(relative.joined(separator: "/"))
+            .standardizedFileURL
     }
 }
