@@ -344,7 +344,7 @@ img {
 .mermaid-viewport .mermaid-inner {
     transform-origin: 0 0;
     transition: transform 0.1s ease-out;
-    display: inline-block;
+    display: block;
 }
 
 /* Mermaid diagrams */
@@ -421,6 +421,11 @@ img {
 .fullview-inner {
     transform-origin: 0 0;
     transition: transform 0.1s ease-out;
+}
+
+.fullview-body.is-diagram .fullview-inner {
+    width: 100%;
+    min-width: 0;
 }
 
 /* Tables inside fullview should not be constrained */
