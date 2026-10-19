@@ -6,6 +6,8 @@ final class WebViewCoordinator: NSObject, WKNavigationDelegate, WKScriptMessageH
     weak var webView: WKWebView?
     var currentMarkdown: String = ""
     var documentDirectory: URL? = nil
+    /// The bundled template.html — the only page this web view may show or receive markdown.
+    var templateURL: URL? = nil
     private var pageLoaded = false
     private let onTOCUpdate: ([TOCItem]) -> Void
     private let onActiveHeadingChange: (String?) -> Void
@@ -19,6 +21,8 @@ final class WebViewCoordinator: NSObject, WKNavigationDelegate, WKScriptMessageH
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        // Never hand the document (with its inlined images) to any page but our own
+        guard let url = webView.url, isTemplate(url) else { return }
         pageLoaded = true
         injectCustomCSS()
         if !currentMarkdown.isEmpty {
@@ -152,23 +156,48 @@ final class WebViewCoordinator: NSObject, WKNavigationDelegate, WKScriptMessageH
         }
     }
 
+    // Allowlist: this web view only ever shows the bundled template (including in-page
+    // #anchor jumps). Everything else — links, form submissions, redirects — is cancelled,
+    // and links the user clicked are handed to the right app instead.
     func webView(
         _ webView: WKWebView,
         decidePolicyFor navigationAction: WKNavigationAction,
-        decisionHandler: @escaping (WKNavigationActionPolicy) -> Void
+        decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void
     ) {
-        if navigationAction.navigationType == .linkActivated,
-           let url = navigationAction.request.url {
-            if url.fragment != nil && url.scheme == "file" {
-                decisionHandler(.allow)
-            } else if url.scheme == "http" || url.scheme == "https" {
-                NSWorkspace.shared.open(url)
-                decisionHandler(.cancel)
-            } else {
-                decisionHandler(.allow)
-            }
-        } else {
+        guard let url = navigationAction.request.url else {
+            decisionHandler(.cancel)
+            return
+        }
+        if isTemplate(url) {
             decisionHandler(.allow)
+            return
+        }
+        if navigationAction.navigationType == .linkActivated {
+            openExternally(url)
+        }
+        decisionHandler(.cancel)
+    }
+
+    private func isTemplate(_ url: URL) -> Bool {
+        guard let templateURL, url.isFileURL, url.query == nil else { return false }
+        return url.resolvingSymlinksInPath().path == templateURL.resolvingSymlinksInPath().path
+    }
+
+    private static let markdownExtensions: Set<String> = ["md", "markdown", "mdown", "mkd", "mdx"]
+
+    private func openExternally(_ url: URL) {
+        switch url.scheme?.lowercased() {
+        case "http", "https", "mailto":
+            NSWorkspace.shared.open(url)
+        case "file":
+            // Relative links to other Markdown files open as a new document; never hand
+            // other local files to NSWorkspace, which would launch apps and scripts.
+            let resolved = url.resolvingSymlinksInPath()
+            let isRegularFile = (try? resolved.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true
+            guard isRegularFile, Self.markdownExtensions.contains(resolved.pathExtension.lowercased()) else { return }
+            NSDocumentController.shared.openDocument(withContentsOf: resolved, display: true) { _, _, _ in }
+        default:
+            break
         }
     }
 }

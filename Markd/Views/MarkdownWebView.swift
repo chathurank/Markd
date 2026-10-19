@@ -26,6 +26,7 @@ struct MarkdownWebView: NSViewRepresentable {
 
         if let webFolder = Bundle.main.resourceURL?.appendingPathComponent("Web") {
             let templateURL = webFolder.appendingPathComponent("template.html")
+            context.coordinator.templateURL = templateURL
             webView.loadFileURL(templateURL, allowingReadAccessTo: webFolder)
         }
 

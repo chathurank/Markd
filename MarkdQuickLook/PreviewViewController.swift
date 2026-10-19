@@ -44,6 +44,7 @@ class PreviewViewController: NSViewController, @preconcurrency QLPreviewingContr
         }
 
         let templateURL = webFolder.appendingPathComponent("template.html")
+        self.templateURL = templateURL
         webView.navigationDelegate = self
         webView.loadFileURL(templateURL, allowingReadAccessTo: webFolder)
 
@@ -51,17 +52,34 @@ class PreviewViewController: NSViewController, @preconcurrency QLPreviewingContr
         pendingHandler = handler
     }
 
+    private var templateURL: URL?
     private var pendingMarkdown: String?
     private var pendingHandler: ((Error?) -> Void)?
 }
 
 extension PreviewViewController: WKNavigationDelegate {
+    // The preview only ever shows the bundled template; links and forms go nowhere
+    func webView(
+        _ webView: WKWebView,
+        decidePolicyFor navigationAction: WKNavigationAction,
+        decisionHandler: @escaping @MainActor @Sendable (WKNavigationActionPolicy) -> Void
+    ) {
+        let url = navigationAction.request.url
+        let isTemplate = url?.isFileURL == true && url?.query == nil
+            && url?.resolvingSymlinksInPath().path == templateURL?.resolvingSymlinksInPath().path
+        decisionHandler(isTemplate ? .allow : .cancel)
+    }
+
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        // Inject once, and only into the template
         guard let markdown = pendingMarkdown,
-              let data = markdown.data(using: .utf8) else {
+              let data = markdown.data(using: .utf8),
+              webView.url?.resolvingSymlinksInPath().path == templateURL?.resolvingSymlinksInPath().path else {
             pendingHandler?(nil)
+            pendingHandler = nil
             return
         }
+        pendingMarkdown = nil
 
         let base64 = data.base64EncodedString()
         let js = "renderMarkdown(decodeURIComponent(escape(atob('\(base64)')))).then(function(){return null}).catch(function(e){return null})"

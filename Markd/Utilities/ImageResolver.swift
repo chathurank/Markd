@@ -2,6 +2,7 @@ import Foundation
 
 enum ImageResolver {
     private static let imagePattern = try! NSRegularExpression(pattern: #"!\[([^\]]*)\]\(([^)]+)\)"#)
+    private static let maxImageBytes = 20 * 1024 * 1024
 
     /// Replace relative image paths in markdown with base64 data: URLs.
     /// Only resolves paths within the given directory (prevents path traversal).
@@ -9,6 +10,8 @@ enum ImageResolver {
         var result = markdown
         let nsString = result as NSString
         let matches = imagePattern.matches(in: result, range: NSRange(location: 0, length: nsString.length))
+        let directoryPath = directory.resolvingSymlinksInPath().path
+        let directoryPrefix = directoryPath.hasSuffix("/") ? directoryPath : directoryPath + "/"
 
         for match in matches.reversed() {
             guard match.numberOfRanges >= 3 else { continue }
@@ -26,12 +29,17 @@ enum ImageResolver {
                 imageURL = directory.appendingPathComponent(path).standardized
             }
 
-            // Prevent path traversal — only allow files within the document directory
-            let directoryPrefix = directory.path.hasSuffix("/") ? directory.path : directory.path + "/"
-            guard imageURL.path.hasPrefix(directoryPrefix) else { continue }
+            // Prevent path traversal — only allow files within the document directory.
+            // Resolve symlinks first: a repo can ship "logo.png" as a link to ~/.ssh/id_rsa.
+            let resolvedURL = imageURL.resolvingSymlinksInPath()
+            guard resolvedURL.path.hasPrefix(directoryPrefix) else { continue }
 
-            guard let imageData = try? Data(contentsOf: imageURL) else { continue }
-            let mimeType = mimeTypeForExtension((path as NSString).pathExtension.lowercased())
+            // Only regular image files of a sane size, judged by the real file, not the link name
+            guard let mimeType = mimeTypeForExtension(resolvedURL.pathExtension.lowercased()),
+                  let values = try? resolvedURL.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey]),
+                  values.isRegularFile == true,
+                  let size = values.fileSize, size <= maxImageBytes,
+                  let imageData = try? Data(contentsOf: resolvedURL) else { continue }
             let dataURL = "data:\(mimeType);base64,\(imageData.base64EncodedString())"
 
             result = (result as NSString).replacingCharacters(in: pathRange, with: dataURL)
@@ -40,7 +48,7 @@ enum ImageResolver {
         return result
     }
 
-    private static func mimeTypeForExtension(_ ext: String) -> String {
+    private static func mimeTypeForExtension(_ ext: String) -> String? {
         switch ext {
         case "png": return "image/png"
         case "jpg", "jpeg": return "image/jpeg"
@@ -50,7 +58,7 @@ enum ImageResolver {
         case "bmp": return "image/bmp"
         case "tiff", "tif": return "image/tiff"
         case "ico": return "image/x-icon"
-        default: return "application/octet-stream"
+        default: return nil
         }
     }
 }
