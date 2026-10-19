@@ -49,6 +49,51 @@ if (window.texmath) {
     });
 }
 
+// Hide YAML front matter (--- block at the top of the file)
+if (window.markdownItFrontMatter) {
+    md.use(window.markdownItFrontMatter, function () {});
+}
+
+// Heading attributes: "## Title {#custom-id .some-class}" (as in Pandoc and kramdown).
+// Only #id and .class are recognised, and only on headings, so text like
+// "GET /users/{id}" is left alone. Runs before the anchor plugin, which keeps an id that's set.
+md.core.ruler.after('text_join', 'heading_attributes', function (state) {
+    var tokens = state.tokens;
+    for (var i = 0; i < tokens.length - 1; i++) {
+        if (tokens[i].type !== 'heading_open') continue;
+        var children = tokens[i + 1].children;
+        var last = children && children[children.length - 1];
+        if (!last || last.type !== 'text') continue;
+        var match = last.content.match(/\s*\{\s*((?:[#.][\w-]+\s*)+)\}\s*$/);
+        if (!match) continue;
+        last.content = last.content.slice(0, match.index);
+        match[1].trim().split(/\s+/).forEach(function (attr) {
+            if (attr.charAt(0) === '#') tokens[i].attrSet('id', attr.slice(1));
+            else tokens[i].attrJoin('class', attr.slice(1));
+        });
+    }
+});
+
+// Footnotes, numbered 1, 2, 3 instead of [1], [2], [3]
+if (window.markdownitFootnote) {
+    md.use(window.markdownitFootnote);
+    md.renderer.rules.footnote_caption = function (tokens, idx) {
+        var n = String(tokens[idx].meta.id + 1);
+        if (tokens[idx].meta.subId > 0) n += ':' + tokens[idx].meta.subId;
+        return n;
+    };
+}
+
+// Definition lists, subscript (H~2~O) and superscript (x^2^)
+if (window.markdownitDeflist) md.use(window.markdownitDeflist);
+if (window.markdownitSub) md.use(window.markdownitSub);
+if (window.markdownitSup) md.use(window.markdownitSup);
+
+// GitHub alerts: > [!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION]
+if (window.markdownItGitHubAlerts) {
+    md.use(window.markdownItGitHubAlerts);
+}
+
 // Initialize Mermaid
 const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 mermaid.initialize({

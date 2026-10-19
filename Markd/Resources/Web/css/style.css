@@ -12,6 +12,11 @@
     --table-header-bg: #e8e8ed;
     --task-check: #34c759;
     --hr: #d2d2d7;
+    --alert-note: #0969da;
+    --alert-tip: #1a7f37;
+    --alert-important: #8250df;
+    --alert-warning: #9a6700;
+    --alert-caution: #d1242f;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -29,6 +34,11 @@
         --table-header-bg: #3a3a3c;
         --task-check: #30d158;
         --hr: #3a3a3c;
+        --alert-note: #2f81f7;
+        --alert-tip: #3fb950;
+        --alert-important: #a371f7;
+        --alert-warning: #d29922;
+        --alert-caution: #f85149;
     }
 }
 
@@ -145,6 +155,39 @@ blockquote {
 blockquote p:last-child {
     margin-bottom: 0;
 }
+
+/* GitHub alerts (> [!NOTE], [!TIP], [!IMPORTANT], [!WARNING], [!CAUTION]) */
+.markdown-alert {
+    border-left: 4px solid var(--alert-color);
+    margin: 1em 0;
+    padding: 0.5em 1em;
+    background: var(--blockquote-bg);
+    border-radius: 0 6px 6px 0;
+}
+
+.markdown-alert > :last-child {
+    margin-bottom: 0;
+}
+
+.markdown-alert-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    font-weight: 600;
+    color: var(--alert-color);
+    margin-bottom: 0.25em;
+}
+
+.markdown-alert-title .octicon {
+    fill: currentColor;
+    flex-shrink: 0;
+}
+
+.markdown-alert-note { --alert-color: var(--alert-note); }
+.markdown-alert-tip { --alert-color: var(--alert-tip); }
+.markdown-alert-important { --alert-color: var(--alert-important); }
+.markdown-alert-warning { --alert-color: var(--alert-warning); }
+.markdown-alert-caution { --alert-color: var(--alert-caution); }
 
 /* Lists */
 ul, ol {
@@ -393,7 +436,7 @@ img {
     overflow-y: hidden;
 }
 
-/* Definition lists (if rendered) */
+/* Definition lists */
 dt {
     font-weight: 600;
     margin-top: 1em;
@@ -402,6 +445,34 @@ dt {
 dd {
     margin-left: 2em;
     margin-bottom: 0.5em;
+}
+
+/* Subscript / superscript — keep them from stretching the line height */
+sub, sup {
+    line-height: 0;
+}
+
+/* Footnotes */
+.footnote-ref a {
+    padding: 0 0.1em;
+}
+
+.footnotes-sep {
+    margin: 2.5em 0 1em;
+}
+
+.footnotes {
+    font-size: 0.9em;
+    color: var(--text-secondary);
+}
+
+.footnote-item {
+    scroll-margin-top: 16px;
+}
+
+.footnote-item:target {
+    background: var(--code-bg);
+    border-radius: 4px;
 }
 
 /* Strikethrough */

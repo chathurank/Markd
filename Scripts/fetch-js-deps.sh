@@ -26,6 +26,48 @@ curl -sL -o "$DIR/texmath.min.js" \
   "https://cdn.jsdelivr.net/npm/markdown-it-texmath@1/texmath.min.js"
 echo "  ✓ markdown-it-texmath"
 
+# markdown-it-footnote — footnotes ([^1])
+curl -sL -o "$DIR/markdown-it-footnote.min.js" \
+  "https://cdn.jsdelivr.net/npm/markdown-it-footnote@4/dist/markdown-it-footnote.min.js"
+echo "  ✓ markdown-it-footnote"
+
+# markdown-it-deflist — definition lists
+curl -sL -o "$DIR/markdown-it-deflist.min.js" \
+  "https://cdn.jsdelivr.net/npm/markdown-it-deflist@4/dist/markdown-it-deflist.min.js"
+echo "  ✓ markdown-it-deflist"
+
+# markdown-it-sub / markdown-it-sup — H~2~O and x^2^
+curl -sL -o "$DIR/markdown-it-sub.min.js" \
+  "https://cdn.jsdelivr.net/npm/markdown-it-sub@2/dist/markdown-it-sub.min.js"
+curl -sL -o "$DIR/markdown-it-sup.min.js" \
+  "https://cdn.jsdelivr.net/npm/markdown-it-sup@2/dist/markdown-it-sup.min.js"
+echo "  ✓ markdown-it-sub / markdown-it-sup"
+
+# markdown-it-front-matter — hides YAML front matter
+# Published as CommonJS only, so wrap it to expose window.markdownItFrontMatter
+FRONT_MATTER_SRC=$(curl -sfL "https://cdn.jsdelivr.net/npm/markdown-it-front-matter@0.2.4/index.js")
+{
+  echo "(function () { var module = { exports: {} };"
+  printf '%s\n' "$FRONT_MATTER_SRC"
+  echo "window.markdownItFrontMatter = module.exports; })();"
+} > "$DIR/markdown-it-front-matter.js"
+echo "  ✓ markdown-it-front-matter"
+
+# markdown-it-github-alerts — > [!NOTE] / [!TIP] / [!IMPORTANT] / [!WARNING] / [!CAUTION]
+# Published as an ES module only, so wrap it to expose window.markdownItGitHubAlerts
+ALERTS_SRC=$(curl -sfL "https://cdn.jsdelivr.net/npm/markdown-it-github-alerts@1.0.1/dist/index.mjs")
+ALERTS_EXPORT='export { MarkdownItGitHubAlerts as default };'
+if ! grep -qxF "$ALERTS_EXPORT" <<< "$ALERTS_SRC"; then
+  echo "markdown-it-github-alerts: unexpected export line, update the wrapper" >&2
+  exit 1
+fi
+{
+  echo "(function () {"
+  grep -vxF "$ALERTS_EXPORT" <<< "$ALERTS_SRC"
+  echo "window.markdownItGitHubAlerts = MarkdownItGitHubAlerts; })();"
+} > "$DIR/markdown-it-github-alerts.js"
+echo "  ✓ markdown-it-github-alerts"
+
 # highlight.js — syntax highlighting (CDN assets bundle)
 curl -sL -o "$DIR/highlight.min.js" \
   "https://cdn.jsdelivr.net/npm/@highlightjs/cdn-assets@11/highlight.min.js"

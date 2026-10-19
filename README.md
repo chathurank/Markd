@@ -11,6 +11,11 @@ A native macOS markdown viewer built with SwiftUI and WKWebView.
 - Mermaid diagrams with zoom/pan controls
 - LaTeX math (inline `$...$` and display `$$...$$`) via KaTeX
 - Code syntax highlighting (180+ languages)
+- GitHub alerts (`> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`)
+- Footnotes (`[^1]` and inline `^[note]`)
+- Definition lists, subscript (`H~2~O`) and superscript (`x^2^`)
+- Heading attributes (`## Title {#custom-id .class}`)
+- YAML front matter is hidden
 - Relative image support
 
 **Navigation**
@@ -71,7 +76,7 @@ Create a CSS file at `~/Library/Application Support/Markd/custom.css` to overrid
 
 - **SwiftUI** app shell with `DocumentGroup` for file handling
 - **WKWebView** for rendering via bundled JavaScript libraries
-- **markdown-it** for GFM parsing
+- **markdown-it** for GFM parsing, plus plugins for footnotes, definition lists, sub/superscript, front matter and GitHub alerts
 - **highlight.js** for syntax highlighting
 - **mermaid.js** for diagrams
 - **KaTeX** for LaTeX math

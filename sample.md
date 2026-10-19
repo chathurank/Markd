@@ -1,3 +1,8 @@
+---
+title: Markd Sample Document
+description: Front matter like this is hidden when rendered.
+---
+
 # Markd Sample Document
 
 This is a sample markdown document to test **Markd**, a macOS markdown viewer.
@@ -113,9 +118,40 @@ Images with URLs will render if accessible:
 
 ---
 
+## Alerts
+
+> [!NOTE]
+> Useful information that users should know, even when skimming.
+
+> [!TIP]
+> Helpful advice for doing things better or more easily.
+
+> [!IMPORTANT]
+> Key information users need to know to achieve their goal.
+
+> [!WARNING]
+> Urgent info that needs immediate user attention to avoid problems.
+
+> [!CAUTION]
+> Advises about risks or negative outcomes of certain actions.
+
+## Footnotes and More {#more-syntax}
+
+Markdown was created by John Gruber in 2004.[^gruber] Inline footnotes work too.^[Like this one.]
+
+Water is H~2~O and Einstein wrote E = mc^2^.
+
+Front matter
+: The YAML block at the top of this file. It's hidden when rendered.
+
+Heading attributes
+: Add `{#custom-id .class}` to the end of a heading, as this section's heading does.
+
+[^gruber]: With help from Aaron Swartz.
+
 ## Internal Links
 
-Jump to [Text Formatting](#text-formatting) or [Mermaid Diagrams](#mermaid-diagrams).
+Jump to [Text Formatting](#text-formatting), [Mermaid Diagrams](#mermaid-diagrams) or [Footnotes and More](#more-syntax).
 
 ## Final Section
 
