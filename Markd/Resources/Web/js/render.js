@@ -236,6 +236,17 @@ function wrapMermaidDiagrams() {
     diagrams.forEach(function (diagram) {
         if (diagram.closest('.expandable-container')) return;
 
+        // Keep the SVG at its natural size; fitting is handled by the zoom scale.
+        var svg = diagram.querySelector('svg');
+        var viewBox = svg && svg.viewBox.baseVal;
+        if (viewBox && viewBox.width > 0 && viewBox.height > 0) {
+            svg.setAttribute('width', viewBox.width);
+            svg.setAttribute('height', viewBox.height);
+            svg.style.width = viewBox.width + 'px';
+            svg.style.height = viewBox.height + 'px';
+            svg.style.maxWidth = 'none';
+        }
+
         var container = document.createElement('div');
         container.className = 'expandable-container';
 
@@ -291,7 +302,17 @@ function wrapTables() {
 // ---- Diagram zoom/pan ----
 
 function setupDiagramZoomPan(container, viewport, inner) {
-    var scale = 1;
+    var svg = inner.querySelector('svg');
+    var naturalWidth = svg ? svg.getBoundingClientRect().width : inner.offsetWidth;
+    var naturalHeight = svg ? svg.getBoundingClientRect().height : inner.offsetHeight;
+    inner.style.width = naturalWidth + 'px';
+
+    function getFitScale() {
+        return naturalWidth > 0 && viewport.clientWidth > 0 ? Math.min(1, viewport.clientWidth / naturalWidth) : 1;
+    }
+
+    var fitScale = getFitScale();
+    var scale = fitScale;
     var panX = 0;
     var panY = 0;
     var isPanning = false;
@@ -299,8 +320,11 @@ function setupDiagramZoomPan(container, viewport, inner) {
     var label = container.querySelector('.zoom-label');
 
     function applyTransform(smooth) {
+        var offsetX = Math.max(0, (viewport.clientWidth - naturalWidth * scale) / 2);
         inner.style.transition = smooth ? 'transform 0.15s ease-out' : 'none';
-        inner.style.transform = 'translate(' + panX + 'px,' + panY + 'px) scale(' + scale + ')';
+        inner.style.transform = 'translate(' + (offsetX + panX) + 'px,' + panY + 'px) scale(' + scale + ')';
+        // Transforms do not change layout, so reserve only the scaled height.
+        viewport.style.height = naturalHeight * scale + 'px';
         label.textContent = Math.round(scale * 100) + '%';
     }
 
@@ -310,12 +334,13 @@ function setupDiagramZoomPan(container, viewport, inner) {
     });
 
     container.querySelector('.zoom-out-btn').addEventListener('click', function () {
-        scale = Math.max(scale / 1.25, 0.2);
+        scale = Math.max(scale / 1.25, Math.min(0.2, fitScale));
         applyTransform(true);
     });
 
     container.querySelector('.zoom-reset-btn').addEventListener('click', function () {
-        scale = 1; panX = 0; panY = 0;
+        fitScale = getFitScale();
+        scale = fitScale; panX = 0; panY = 0;
         applyTransform(true);
     });
 
@@ -327,7 +352,7 @@ function setupDiagramZoomPan(container, viewport, inner) {
     viewport.addEventListener('wheel', function (e) {
         e.preventDefault();
         var factor = e.deltaY < 0 ? 1.1 : 0.9;
-        scale = Math.max(0.2, Math.min(5, scale * factor));
+        scale = Math.max(Math.min(0.2, fitScale), Math.min(5, scale * factor));
         applyTransform(false);
     }, { passive: false });
 
@@ -387,6 +412,11 @@ function openFullView(contentNode, isDiagram) {
 
     var inner = document.createElement('div');
     inner.className = 'fullview-inner';
+    if (isDiagram) {
+        // The overlay owns its transform, independent of the page zoom and pan.
+        contentNode.style.transform = 'none';
+        contentNode.style.transition = 'none';
+    }
     inner.appendChild(contentNode);
     body.appendChild(inner);
 
@@ -418,13 +448,29 @@ function openFullView(contentNode, isDiagram) {
 
     // Diagram zoom/pan in fullview
     if (isDiagram) {
-        var fvScale = 1, fvPanX = 0, fvPanY = 0;
+        var fvSVG = contentNode.querySelector('svg');
+        var fvNaturalWidth = fvSVG ? fvSVG.getBoundingClientRect().width : contentNode.offsetWidth;
+        var fvNaturalHeight = fvSVG ? fvSVG.getBoundingClientRect().height : contentNode.offsetHeight;
+        inner.style.width = fvNaturalWidth + 'px';
+        var fvStyle = window.getComputedStyle(body);
+        var fvWidth, fvHeight, fvFitScale;
+
+        function fvGetFitScale() {
+            fvWidth = body.clientWidth - parseFloat(fvStyle.paddingLeft) - parseFloat(fvStyle.paddingRight);
+            fvHeight = body.clientHeight - parseFloat(fvStyle.paddingTop) - parseFloat(fvStyle.paddingBottom);
+            return fvNaturalWidth > 0 && fvNaturalHeight > 0 && fvWidth > 0 && fvHeight > 0 ?
+                Math.min(1, fvWidth / fvNaturalWidth, fvHeight / fvNaturalHeight) : 1;
+        }
+
+        fvFitScale = fvGetFitScale();
+        var fvScale = fvFitScale, fvPanX = 0, fvPanY = 0;
         var fvIsPanning = false, fvStartX, fvStartY, fvStartPanX, fvStartPanY;
         var fvLabel = toolbar.querySelector('.zoom-label');
 
         function fvApply(smooth) {
+            var fvOffsetX = Math.max(0, (fvWidth - fvNaturalWidth * fvScale) / 2);
             inner.style.transition = smooth ? 'transform 0.15s ease-out' : 'none';
-            inner.style.transform = 'translate(' + fvPanX + 'px,' + fvPanY + 'px) scale(' + fvScale + ')';
+            inner.style.transform = 'translate(' + (fvOffsetX + fvPanX) + 'px,' + fvPanY + 'px) scale(' + fvScale + ')';
             fvLabel.textContent = Math.round(fvScale * 100) + '%';
         }
 
@@ -432,16 +478,17 @@ function openFullView(contentNode, isDiagram) {
             fvScale = Math.min(fvScale * 1.25, 5); fvApply(true);
         });
         toolbar.querySelector('.zoom-out-btn').addEventListener('click', function () {
-            fvScale = Math.max(fvScale / 1.25, 0.2); fvApply(true);
+            fvScale = Math.max(fvScale / 1.25, Math.min(0.2, fvFitScale)); fvApply(true);
         });
         toolbar.querySelector('.zoom-reset-btn').addEventListener('click', function () {
-            fvScale = 1; fvPanX = 0; fvPanY = 0; fvApply(true);
+            fvFitScale = fvGetFitScale();
+            fvScale = fvFitScale; fvPanX = 0; fvPanY = 0; fvApply(true);
         });
 
         body.addEventListener('wheel', function (e) {
             e.preventDefault();
             var factor = e.deltaY < 0 ? 1.1 : 0.9;
-            fvScale = Math.max(0.2, Math.min(5, fvScale * factor));
+            fvScale = Math.max(Math.min(0.2, fvFitScale), Math.min(5, fvScale * factor));
             fvApply(false);
         }, { passive: false });
 
@@ -460,6 +507,8 @@ function openFullView(contentNode, isDiagram) {
         document.addEventListener('mouseup', function () {
             fvIsPanning = false;
         });
+
+        fvApply(false);
     }
 }
 

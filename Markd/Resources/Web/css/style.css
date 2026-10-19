@@ -334,7 +334,6 @@ img {
 .mermaid-viewport {
     overflow: hidden;
     cursor: grab;
-    min-height: 100px;
 }
 
 .mermaid-viewport:active {
@@ -351,6 +350,10 @@ img {
 .mermaid {
     text-align: center;
     background: transparent;
+}
+
+.mermaid svg {
+    display: block;
 }
 
 /* ---- Full-view overlay ---- */
@@ -412,6 +415,8 @@ img {
 .fullview-body.is-diagram {
     cursor: grab;
     overflow: hidden;
+    min-height: 0;
+    justify-content: flex-start;
 }
 
 .fullview-body.is-diagram:active {
@@ -424,8 +429,7 @@ img {
 }
 
 .fullview-body.is-diagram .fullview-inner {
-    width: 100%;
-    min-width: 0;
+    flex: 0 0 auto;
 }
 
 /* Tables inside fullview should not be constrained */
